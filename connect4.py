@@ -2,65 +2,50 @@ import pygame
 from sys import exit
 from random import randint, choice
 
-class Player1(pygame.sprite.Sprite):
-    def __init__(self, color):
+class Player(pygame.sprite.Sprite):
+    def __init__(self, image):
         super().__init__()
-        self.name = "Player 1"
-        self.color = color
+        self.chip = image
         self.turn = True
-        self.moves = ""
-        self.image = Red
-        self.rect = Red.get_rect(center = (167, chip_hover_height))
+        self.image = self.chip
+        self.rect = self.image.get_rect(center = (167, chip_hover_height))
 
     def myTurn(self):
         if(self.turn):
-            self.image = Red
+            self.image = self.chip
         else:
             self.image = blank_surface
 
     def update(self):
         self.myTurn()
 
-class Player2(pygame.sprite.Sprite):
-    def __init__(self, color):
-        super().__init__()
-        self.name = "Player 2"
-        self.color = color
-        self.turn = False
-        self.moves = ""
-        self.image = blank_surface
-        self.rect = Yellow.get_rect(center = (167, chip_hover_height))
-        self.computer = False
-
-    def myTurn(self):
-        if(self.turn == True):
-            self.image = Yellow
-        else:
-            self.image = blank_surface
-
-    def update(self):
-        self.myTurn()
 
 class BoardandGUI(pygame.sprite.Sprite):
-    def __init__(self, p1, p2):
+    def __init__(self, p1_chip, p2_chip):
         super().__init__()
-        self.image = pygame.image.load("board elements/boards/default_board.png").convert_alpha()
+        self.image = pygame.image.load("board_elements/boards/default_board.png").convert_alpha()
         self.rect = self.image.get_rect(center = (w/2, gl), bottom = gl)
-        self.p1 = p1
-        self.p2 = p2
+        self.p1 = pygame.sprite.GroupSingle(Player(p1_chip))
+        self.p2 = pygame.sprite.GroupSingle(Player(p2_chip))
         self.slots = [[0] * 7 for i in range(6)]
         self.slot_rects = []
         self.place_rects = []
         self.winner = None
         self.chip_sound = pygame.mixer.Sound("audio/chip_drop.mp3")
         self.bg_music = pygame.mixer.music.load("audio/bg_music.mp3")
-        self.setup_board()
+        self.setup_board(p1_chip, p2_chip)
     
 
-    def setup_board(self): # fills board row-first with blank surfaces starting from the bottom left. Fills row above board with clickable surfaces for each column. returns the slots as a 2d list, and the places as a list.
-        self.p1.turn = True
-        self.p2.turn = False
+    def setup_board(self, p1_chip, p2_chip): # fills board row-first with blank surfaces starting from the bottom left. Fills row above board with clickable surfaces for each column. returns the slots as a 2d list, and the places as a list.
+        # self.p1.sprite.add(Player(p1_chip))
+        self.p1.sprite.turn = True
+
+        # self.p2.sprite.add(Player(p2_chip))
+        self.p2.sprite.turn = False
+        self.p2.sprite.image = blank_surface
+
         pygame.mixer.music.play(-1)
+
         for y in range(497, 497 - 75*6, -75):
             row_list = []
             for x in range(167, 167 + 85*7, 85):
@@ -77,19 +62,19 @@ class BoardandGUI(pygame.sprite.Sprite):
                     cat += 1
                     if x < 4: # check if there is a winner in the row
                         if self.slots[y][x] == self.slots[y][x+1] == self.slots[y][x+2] == self.slots[y][x+3]:
-                            self.winner = "Red" if self.slots[y][x] == Red else "Yellow"
+                            self.winner = "Player 1" if self.slots[y][x] == self.p1.sprite.chip else "Player 2"
                             return (y,x), "r"
                     if y < 3: # check if there is a winner in the column
                         if self.slots[y][x] == self.slots[y+1][x] == self.slots[y+2][x] == self.slots[y+3][x]:
-                            self.winner = "Red" if self.slots[y][x] == Red else "Yellow"
+                            self.winner = "Player 1" if self.slots[y][x] == self.p1.sprite.chip else "Player 2"
                             return (y,x), "c"
                     if y < 3 and x < 4: # check if there is a winner in the right diagonal
                         if self.slots[y][x] == self.slots[y+1][x+1] == self.slots[y+2][x+2] == self.slots[y+3][x+3]:
-                            self.winner = "Red" if self.slots[y][x] == Red else "Yellow"
+                            self.winner = "Player 1" if self.slots[y][x] == self.p1.sprite.chip else "Player 2"
                             return (y,x), "rd"
                     if y > 2 and x < 4: # check if there is a winner in the left diagonal
                         if self.slots[y][x] == self.slots[y-1][x+1] == self.slots[y-2][x+2] == self.slots[y-3][x+3]:
-                            self.winner = "Red" if self.slots[y][x] == Red else "Yellow"
+                            self.winner = "Player 1" if self.slots[y][x] == self.p1.sprite.chip else "Player 2"
                             return (y,x), "ld"
         if cat == 42:
             self.winner = "cat"
@@ -120,15 +105,15 @@ class BoardandGUI(pygame.sprite.Sprite):
                 for x in range(len(self.slot_rects[y])):
                     if self.place_rects[collided].centerx != self.slot_rects[y][x].centerx or self.slots[y][x] != 0: # fill the slot that the mouse is in the same column as
                         continue 
-                    if self.p1.turn:
-                        self.p1.turn = False
-                        p = self.p1
-                        self.p2.turn = True
+                    if self.p1.sprite.turn:
+                        self.p1.sprite.turn = False
+                        p = self.p1.sprite
+                        self.p2.sprite.turn = True
                     else: # if self.p2's turn, fill with yellow
-                        self.p1.turn = True
-                        p = self.p2
-                        self.p2.turn = False
-                    self.slots[y][x] = p.image
+                        self.p1.sprite.turn = True
+                        p = self.p2.sprite
+                        self.p2.sprite.turn = False
+                    self.slots[y][x] = p.sprite.image
                     p.rect.center = (167, chip_hover_height)
                     self.chip_sound.play(loops=0)
                     return self.check_winner()
@@ -142,63 +127,69 @@ class BoardandGUI(pygame.sprite.Sprite):
                     # print(self.slot_rects[1][0], collided)
                     if self.slot_rects[y][collided].centerx != self.slot_rects[y][x].centerx or self.slots[y][x] != 0:
                         continue
-                    if self.p1.turn: # if self.p1's turn, fill with red
-                        self.p1.turn = False
+                    if self.p1.sprite.turn: # if self.p1's turn, fill with red
+                        self.p1.sprite.turn = False
                         p = self.p1
-                        self.p2.turn = True
+                        self.p2.sprite.turn = True
                     else: # if self.p2's turn, fill with yellow
-                        self.p1.turn = True
+                        self.p1.sprite.turn = True
                         p = self.p2
-                        self.p2.turn = False
-                    self.slots[y][x] = p.image
-                    p.rect.center = (167, chip_hover_height)
+                        self.p2.sprite.turn = False
+                    self.slots[y][x] = p.sprite.image
+                    p.sprite.rect.center = (167, chip_hover_height)
                     self.chip_sound.play(loops=0)
                     return self.check_winner()
         return None, None
         
     def eventloop(self):
         global gaming, resume, in_menu, events
-        if gaming and resume:
-            self.draw_guiandslots(screen)
-            for event in events: #action loop
-                if event.type == pygame.QUIT: # close game manually
-                    pygame.quit()
-                    exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if menu_button_rect.collidepoint(pygame.mouse.get_pos()):
-                        resume = False
-                        in_menu = 1
-                        pygame.mixer.pause()
-                        break
-                    elif help_button_rect.collidepoint(pygame.mouse.get_pos()):
-                        resume = False
-                        in_menu = 2
-                        pygame.mixer.music.pause()
-                        break
-                    elif pygame.Rect(pygame.mouse.get_pos()[0] - 5, pygame.mouse.get_pos()[1] - 5, 10, 10).collidelist(self.place_rects) != -1 or (pygame.mouse.get_pos()[0] > self.rect.left and pygame.mouse.get_pos()[0] < self.rect.right): # click a valid space         
-                        where, direction = self.update_board()
-                        if self.winner != None:
-                            self.p1.turn = False
-                            self.p2.turn = False
-                            if self.winner == "cat":
-                                win_text = font.render("Cat's Game!", True, text_color)
-                            else:
-                                win_text = font.render(self.winner + " wins!", True, text_color)
-                                self.winning_line(where, direction) # important before win_text because function redraws the background. draw the line over the winning chips
-                            screen.blit(win_text, win_text.get_rect(center = (w/2, self.rect.top - 25)))
-                            gaming = False
-                            break
-                
-                if event.type == pygame.MOUSEMOTION: # move chip with mouse
-                    for x in range(len(self.place_rects)): # check if mouse is in a place rect and move chip to that rect
-                        if pygame.mouse.get_pos()[0] < self.place_rects[x].left or pygame.mouse.get_pos()[0] > self.place_rects[x].right:
-                            continue
+        for event in events: #action loop
+            if event.type == pygame.QUIT: # close game manually
+                pygame.quit()
+                exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if menu_button_rect.collidepoint(pygame.mouse.get_pos()):
+                    # resume = False
+                    in_menu = 1
+                    pygame.mixer.pause()
+                    break
+                elif help_button_rect.collidepoint(pygame.mouse.get_pos()):
+                    # resume = False
+                    in_menu = 2
+                    pygame.mixer.music.pause()
+                    return
+                elif pygame.Rect(pygame.mouse.get_pos()[0] - 5, pygame.mouse.get_pos()[1] - 5, 10, 10).collidelist(self.place_rects) != -1 or (pygame.mouse.get_pos()[0] > self.rect.left and pygame.mouse.get_pos()[0] < self.rect.right): # click a valid space         
+                    where, direction = self.update_board()
+                    if not self.winner:
+                        continue
+                    
+                    self.p1.sprite.turn = False
+                    self.p2.sprite.turn = False # stop input and don't render chip hover
+                    self.p1.sprite.update()
+                    self.p2.sprite.update()
 
-                        if self.p1.turn:
-                            self.p1.rect.center = (self.place_rects[x].centerx, self.place_rects[x].centery)
-                        else:
-                            self.p2.rect.center = (self.place_rects[x].centerx, self.place_rects[x].centery)
-                        break
+                    if self.winner == "cat":
+                        win_text = font.render("It's a draw!", True, text_color)
+                    else:
+                        win_text = font.render(self.winner + " wins!", True, text_color)
+                        self.winning_line(where, direction) # important to draw before rendering win_text because function redraws the background. draws the line over the winning chips
+
+                    screen.blit(win_text, win_text.get_rect(center = (w/2, self.rect.top - 25)))
+                    gaming = False
+                    return
+                
+            if event.type == pygame.MOUSEMOTION and pygame.mouse.get_pos()[0] <= self.place_rects[-1].right: # move chip with mouse
+                for x in range(len(self.place_rects)): # check if mouse is in a place rect and move chip to that rect
+                    if pygame.mouse.get_pos()[0] < self.place_rects[x].left:
+                        return # if mouse is before the current place rect, should have already found a spot prior, so return
+                    elif pygame.mouse.get_pos()[0] > self.place_rects[x].right:
+                        continue
+
+                    if self.p1.sprite.turn:
+                        self.p1.sprite.rect.center = (self.place_rects[x].centerx, self.place_rects[x].centery)
+                    else:
+                        self.p2.sprite.rect.center = (self.place_rects[x].centerx, self.place_rects[x].centery)
+                    break
 
     def draw_guiandslots(self, screen):
         screen.blit(background, (0, 0))
@@ -209,8 +200,13 @@ class BoardandGUI(pygame.sprite.Sprite):
                 if self.slots[i][j] != 0:
                     screen.blit(self.slots[i][j], self.slot_rects[i][j])
         screen.blit(self.image, self.rect)
+        self.p1.draw(screen)
+        self.p2.draw(screen)
 
     def update(self):
+        self.p1.sprite.update()
+        self.p2.sprite.update()
+        self.draw_guiandslots(screen)
         self.eventloop()
 
 
@@ -232,18 +228,17 @@ title = font.render("Connect 4", True, text_color)
 title_rect = title.get_rect(center = (w/2, 140))
 play_button = font.render("Play!", True, text_color)
 play_button_rect = play_button.get_rect(center = (w/2, title_rect.bottom + 200))
-coin_anim_image = pygame.image.load("board elements/coins/spinning.gif/spin_anim1.png").convert_alpha()
+coin_anim_image = pygame.image.load("board_elements/coins/spinning.gif/spin_anim1.png").convert_alpha()
 coin_anim_rect = pygame.Rect(title_rect.left + title_rect.width/2 -42, title_rect.bottom + 25, 84, 86)
 coin_anim = 1
 
 # Game screen
-Red = pygame.image.load("board elements/coins/Red.png").convert_alpha()
-Yellow = pygame.image.load("board elements/coins/Yellow.png").convert_alpha()
-player1 = pygame.sprite.GroupSingle()
-player1.add(Player1("Red"))
-player2 = pygame.sprite.GroupSingle()
-player2.add(Player2("Yellow"))
-player2.sprite.computer = False
+Red = pygame.image.load("board_elements/coins/Red.png").convert_alpha()
+Yellow = pygame.image.load("board_elements/coins/Yellow.png").convert_alpha()
+# player1 = pygame.sprite.GroupSingle()
+# player1.add(Player("Red", Red))
+# player2 = pygame.sprite.GroupSingle()
+# player2.add(Player("Yellow", Yellow))
 
 
 # UI elements
@@ -276,15 +271,11 @@ while True:
         # screen.blit(background, (0, 0))
 
         board.sprite.update()
-        player1.update()
-        player2.update()
-        player1.draw(screen)
-        player2.draw(screen)
 
                           
     # game paused or ended
     else:
-        if board != [] and board.sprite.winner != None: # game ended
+        if board and board.sprite.winner != None: # game ended
             for event in events:
                 if event.type == pygame.QUIT: # close window manually
                     pygame.quit()
@@ -302,12 +293,12 @@ while True:
                 if event.type == pygame.MOUSEBUTTONDOWN: # click on menu buttons
                     if exit_menu_button_rect.collidepoint(pygame.mouse.get_pos()) or (in_menu == 1 and return_button_rect.collidepoint(pygame.mouse.get_pos())):
                         in_menu = 0
-                        resume = True
+                        # resume = True
                         pygame.mixer.music.unpause()
                         break
                     elif in_menu == 1 and quit_button_rect.collidepoint(pygame.mouse.get_pos()):
                         in_menu = 0
-                        resume = True
+                        # resume = True
                         gaming = False
                         pygame.mixer.music.stop()
                         break
@@ -330,7 +321,7 @@ while True:
                     elif play_button_rect.collidepoint(pygame.mouse.get_pos()) and not in_menu:
                         gaming = True
                         board = pygame.sprite.GroupSingle()
-                        board.add(BoardandGUI(player1.sprite, player2.sprite))
+                        board.add(BoardandGUI(Red, Yellow))
 
             background = pygame.image.load("ui/title_menu.png").convert()
             screen.blit(background, (0, 0))
@@ -341,7 +332,7 @@ while True:
             if coin_anim <= 9.5:
                 if coin_anim == -1:
                     coin_anim = 1
-                coin_anim_image = pygame.image.load(f"board elements/coins/spinning.gif/spin_anim{int(coin_anim)}.png").convert_alpha()
+                coin_anim_image = pygame.image.load(f"board_elements/coins/spinning.gif/spin_anim{int(coin_anim)}.png").convert_alpha()
                 coin_anim += 0.08
             # else:
             #     coin_anim = 1
